@@ -361,30 +361,31 @@
     </div>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
-        const API_BASE = "/api/contratos"; // Cambiar a URL completa si pruebas fuera de localhost:3000
+        const API_BASE = "/api/contratos";
         let charts = {};
 
         async function fetchData() {
-            const search = document.getElementById('searchInput').value;
-            const estado = document.getElementById('filterEstado').value;
-            const monto = document.getElementById('filterMonto').value;
-            const sortField = document.getElementById('sortField').value;
-            const sortDir = document.getElementById('sortDir').value;
-
-            let params = new URLSearchParams();
-            let conditions = [];
-
             try {
-                const response = await fetch(`${API_BASE}?${params.toString()}`);
-                if (!response.ok) throw new Error("Error en la API");
+                // Llamada simple con el límite de 100 por defecto
+                const response = await fetch(`${API_BASE}?$limit=100`);
+
+                if (!response.ok) throw new Error("Error en la respuesta");
+
                 const data = await response.json();
+
+                // Actualizar el dashboard con los datos obtenidos
                 updateDashboard(data);
+
+                // Actualizar estado visual
+                document.getElementById('api-status').innerText = 'CONECTADO';
+                document.getElementById('api-status').style.color = '#639922';
             } catch (err) {
-                console.error("Error:", err);
+                console.error("Error al obtener contratos:", err);
                 document.getElementById('api-status').innerText = 'ERROR';
                 document.getElementById('api-status').style.color = '#E24B4A';
             }
         }
+
 
         function updateDashboard(data) {
             const total = data.reduce((a, v) => a + (Number(v.valor_del_contrato) || 0), 0);
