@@ -371,10 +371,10 @@
             const sortField = document.getElementById('sortField').value;
             const sortDir = document.getElementById('sortDir').value;
 
-            // Usamos URLSearchParams para manejar la limitación y codificación correctamente
             let params = new URLSearchParams();
             let conditions = [];
 
+            // Construcción de la query
             if (search) conditions.push(`(nombre_entidad LIKE '%${search}%' OR ciudad LIKE '%${search}%')`);
             if (estado) conditions.push(`estado_contrato = '${estado}'`);
             if (monto) conditions.push(`valor_del_contrato >= ${monto}`);
@@ -382,15 +382,19 @@
             if (conditions.length > 0) params.append('$where', conditions.join(' AND '));
 
             params.append('$order', `${sortField} ${sortDir}`);
-            params.append('$limit', '100'); // LIMITACIÓN FORZADA A 100
+
+            // FORZAR LÍMITE DE 100 POR DEFECTO
+            params.append('$limit', '100');
 
             try {
                 const response = await fetch(`${API_BASE}?${params.toString()}`);
+                if (!response.ok) throw new Error("Error en la API");
                 const data = await response.json();
                 updateDashboard(data);
             } catch (err) {
                 console.error("Error:", err);
                 document.getElementById('api-status').innerText = 'ERROR';
+                document.getElementById('api-status').style.color = '#E24B4A';
             }
         }
 
