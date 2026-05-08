@@ -4,7 +4,6 @@ import { applySOQL } from './soqlEngine';
 import { SOQLQuery } from './types';
 
 const app = express();
-
 app.use(cors());
 app.use(express.json());
 
