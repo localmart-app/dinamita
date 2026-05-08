@@ -276,7 +276,6 @@
 </head>
 
 <body>
-
     <div id="app">
         <aside>
             <div class="logo-area">
@@ -290,17 +289,17 @@
                 <div class="nav-item"><i class="ti ti-settings"></i> API Config</div>
             </nav>
         </aside>
-
         <main>
             <header>
                 <div class="search-bar-row">
                     <div class="search-wrap">
                         <i class="ti ti-terminal"></i>
-                        <input id="searchInput" type="text" placeholder="Buscar por entidad o ciudad (LIKE)..." />
+                        <!-- Se agregó el evento onkeyup para buscar presionando Enter -->
+                        <input id="searchInput" type="text" placeholder="Buscar por entidad o ciudad (LIKE)..."
+                            onkeyup="if(event.key === 'Enter') fetchData()" />
                     </div>
                     <button class="btn-search" onclick="fetchData()">EJECUTAR CONSULTA</button>
                 </div>
-
                 <div class="filters-row">
                     <div class="filter-group">
                         <label>Estado:</label>
@@ -311,18 +310,15 @@
                             <option value="Borrador">Borrador</option>
                         </select>
                     </div>
-
                     <div class="filter-group">
                         <label>Mínimo ($):</label>
                         <input type="number" id="filterMonto" placeholder="0" style="width: 100px;">
                     </div>
-
                     <div class="filter-group" style="margin-left: auto;">
                         <label>Ordenar por:</label>
                         <select id="sortField">
                             <option value="valor_del_contrato">Valor</option>
                             <option value="nombre_entidad">Entidad</option>
-                            <option value="fecha_de_firma">Fecha</option>
                         </select>
                         <select id="sortDir">
                             <option value="DESC">DESC</option>
@@ -331,7 +327,6 @@
                     </div>
                 </div>
             </header>
-
             <div class="dashboard-scroll">
                 <div class="kpi-grid">
                     <div class="kpi-card">
@@ -348,10 +343,9 @@
                     </div>
                     <div class="kpi-card" style="border-left: 4px solid #E24B4A;">
                         <div class="kpi-label">Estado API</div>
-                        <div class="kpi-value" style="color: #639922; font-size: 14px;">CONECTADO</div>
+                        <div class="kpi-value" id="api-status" style="color: #639922; font-size: 14px;">CONECTADO</div>
                     </div>
                 </div>
-
                 <div class="charts-grid">
                     <div class="chart-card">
                         <canvas id="topChart" height="100"></canvas>
@@ -360,7 +354,6 @@
                         <canvas id="geoChart"></canvas>
                     </div>
                 </div>
-
                 <div class="table-card">
                     <table>
                         <thead>
@@ -382,7 +375,8 @@
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
-        const API_BASE = "/api/contratos";
+        // URL ABSOLUTA CORREGIDA
+        const API_BASE = "https://dinamita-iota.vercel.app/api/contratos";
         let charts = {};
 
         async function fetchData() {
@@ -392,46 +386,54 @@
             const sortField = document.getElementById('sortField').value;
             const sortDir = document.getElementById('sortDir').value;
 
-            // 1. Construir Cláusulas $where
+            // Usar URLSearchParams para codificar automáticamente los espacios (Soluciona el error 404)
+            let params = new URLSearchParams();
             let conditions = [];
+
             if (search) {
-                // SoQL: Buscamos en nombre_entidad o ciudad
-                conditions.push(`(nombre_entidad LIKE '${search}' OR ciudad LIKE '${search}')`);
+                // Añadimos % para que funcione como un buscador real "Contiene"
+                conditions.push(`(nombre_entidad LIKE '%${search}%' OR ciudad LIKE '%${search}%')`);
             }
             if (estado) {
+                // En SECOP usualmente se usa 'estado_contrato' o 'estado_del_proceso'. Usamos estado_contrato por defecto.
                 conditions.push(`estado_contrato = '${estado}'`);
             }
             if (monto) {
                 conditions.push(`valor_del_contrato >= ${monto}`);
             }
 
-            // 2. Armar Query String
-            let queryParams = [];
             if (conditions.length > 0) {
-                queryParams.push(`$where=${conditions.join(' AND ')}`);
+                params.append('$where', conditions.join(' AND '));
             }
 
-            // 3. Agregar Ordenamiento
-            queryParams.push(`$order=${sortField} ${sortDir}`);
+            params.append('$order', `${sortField} ${sortDir}`);
+            params.append('$limit', '50');
 
-            // 4. Limitar para el dashboard
-            queryParams.push(`$limit=50`);
-
-            const finalUrl = `${API_BASE}?${queryParams.join('&')}`;
+            const finalUrl = `${API_BASE}?${params.toString()}`;
             console.log("Consultando API:", finalUrl);
 
             try {
                 const response = await fetch(finalUrl);
+                if (!response.ok) throw new Error(`HTTP status ${response.status}`);
+
                 const data = await response.json();
+
+                document.getElementById('api-status').innerText = 'CONECTADO';
+                document.getElementById('api-status').style.color = '#639922';
+
                 updateDashboard(data);
             } catch (err) {
                 console.error("Error fetching data:", err);
-                alert("Error al conectar con la API. Asegúrate de que el servidor esté corriendo en el puerto 3000.");
+                document.getElementById('api-status').innerText = 'ERROR';
+                document.getElementById('api-status').style.color = '#E24B4A';
+                updateDashboard([]); // Enviar array vacío para limpiar el dashboard si hay error
             }
         }
 
         function updateDashboard(data) {
-            // KPIs
+            if (!Array.isArray(data)) data = []; // Prevención de errores
+
+            // KPIs asegurándonos de convertir a número
             const total = data.reduce((a, v) => a + (Number(v.valor_del_contrato) || 0), 0);
             const count = data.length;
             const avg = count > 0 ? total / count : 0;
@@ -445,29 +447,51 @@
         }
 
         function renderTable(data) {
-            const html = data.map(d => `
-        <tr>
-            <td style="font-weight:600; color:#2C2C2A">${d.nombre_entidad}</td>
-            <td style="color:#888780">${d.ciudad} (${d.departamento})</td>
-            <td style="font-weight:700">${fmt(d.valor_del_contrato)}</td>
-            <td><span class="badge ${d.estado_contrato === 'En ejecución' ? 'badge-activo' : 'badge-proceso'}">${d.estado_contrato}</span></td>
-        </tr>
-    `).join('');
+            if (data.length === 0) {
+                document.getElementById('tableBody').innerHTML = '<tr><td colspan="4" style="text-align:center;">No se encontraron resultados</td></tr>';
+                return;
+            }
+
+            const html = data.map(d => {
+                // Manejo de valores nulos o indefinidos
+                const entidad = d.nombre_entidad || 'Sin nombre';
+                const ubicacion = `${d.ciudad || ''} ${d.departamento ? `(${d.departamento})` : ''}`;
+                const valor = Number(d.valor_del_contrato) || 0;
+                const estadoLabel = d.estado_contrato || d.estado_del_proceso || 'Desconocido';
+                const badgeClass = estadoLabel.toLowerCase().includes('ejecución') ? 'badge-activo' : 'badge-proceso';
+
+                return `
+          <tr>
+            <td style="font-weight:600; color:#2C2C2A">${entidad}</td>
+            <td style="color:#888780">${ubicacion}</td>
+            <td style="font-weight:700">${fmt(valor)}</td>
+            <td><span class="badge ${badgeClass}">${estadoLabel}</span></td>
+          </tr>
+        `;
+            }).join('');
+
             document.getElementById('tableBody').innerHTML = html;
         }
 
         function renderCharts(data) {
+            // Evitar renderizar gráficos si no hay data
+            if (data.length === 0) {
+                if (charts.bar) charts.bar.destroy();
+                if (charts.pie) charts.pie.destroy();
+                return;
+            }
+
             // Chart 1: Top 5 por valor
-            const top5 = [...data].sort((a, b) => b.valor_del_contrato - a.valor_del_contrato).slice(0, 5);
+            const top5 = [...data].sort((a, b) => (Number(b.valor_del_contrato) || 0) - (Number(a.valor_del_contrato) || 0)).slice(0, 5);
 
             if (charts.bar) charts.bar.destroy();
             charts.bar = new Chart(document.getElementById('topChart'), {
                 type: 'bar',
                 data: {
-                    labels: top5.map(d => d.nombre_entidad.substring(0, 15) + '...'),
+                    labels: top5.map(d => (d.nombre_entidad || 'N/A').substring(0, 15) + '...'),
                     datasets: [{
                         label: 'Valor Contrato',
-                        data: top5.map(d => d.valor_del_contrato),
+                        data: top5.map(d => Number(d.valor_del_contrato) || 0),
                         backgroundColor: '#E24B4A'
                     }]
                 },
@@ -476,7 +500,10 @@
 
             // Chart 2: Distribución por Depto
             const deptoMap = {};
-            data.forEach(d => deptoMap[d.departamento] = (deptoMap[d.departamento] || 0) + 1);
+            data.forEach(d => {
+                const dep = d.departamento || 'No especificado';
+                deptoMap[dep] = (deptoMap[dep] || 0) + 1;
+            });
 
             if (charts.pie) charts.pie.destroy();
             charts.pie = new Chart(document.getElementById('geoChart'), {
@@ -485,18 +512,22 @@
                     labels: Object.keys(deptoMap),
                     datasets: [{
                         data: Object.values(deptoMap),
-                        backgroundColor: ['#E24B4A', '#F09595', '#BA7517', '#639922', '#378ADD']
+                        backgroundColor: ['#E24B4A', '#F09595', '#BA7517', '#639922', '#378ADD', '#A32D2D']
                     }]
                 },
                 options: { cutout: '70%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 8, font: { size: 9 } } } } }
             });
         }
 
-        function fmt(v) { return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(v); }
+        function fmt(v) {
+            return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(v);
+        }
+
         function fmtShort(v) {
+            if (v === 0) return '$0';
             if (v >= 1e9) return '$' + (v / 1e9).toFixed(1) + 'B';
             if (v >= 1e6) return '$' + (v / 1e6).toFixed(0) + 'M';
-            return '$' + v;
+            return '$' + v.toLocaleString('es-CO');
         }
 
         // Carga inicial
