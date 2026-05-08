@@ -3,113 +3,504 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Hackaton API - SOQL Tester</title>
+    <title>DINAMITA.EXE - Dashboard</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
     <style>
-        body {
-            font-family: system-ui, -apple-system, sans-serif;
-            padding: 20px;
-            background: #f4f4f9;
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
-        .container {
-            max-width: 800px;
-            margin: auto;
-            background: white;
-            padding: 20px;
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+        #app {
+            font-family: 'Inter', sans-serif;
+            background: #F8F7F4;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        aside {
+            width: 220px;
+            background: #FFFFFF;
+            border-right: 0.5px solid #E2E0D9;
+            display: flex;
+            flex-direction: column;
+            padding: 20px 0;
+        }
+
+        .logo-area {
+            padding: 0 16px 20px;
+            border-bottom: 0.5px solid #E2E0D9;
+            margin-bottom: 16px;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: #E24B4A;
             border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 8px;
         }
 
-        textarea,
-        input {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
+        .logo-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #2C2C2A;
+            letter-spacing: -0.3px;
         }
 
-        button {
-            padding: 10px 20px;
-            background: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
+        .logo-sub {
+            font-size: 9px;
+            font-weight: 500;
+            color: #888780;
+            letter-spacing: 0.15em;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        nav {
+            padding: 0 10px;
+            flex: 1;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 500;
+            color: #888780;
             cursor: pointer;
+            margin-bottom: 2px;
+            transition: all 0.15s;
         }
 
-        button:hover {
-            background: #0056b3;
+        .nav-item.active {
+            background: #FCEBEB;
+            color: #A32D2D;
+            font-weight: 600;
         }
 
-        pre {
-            background: #2d2d2d;
-            color: #00ff00;
-            padding: 15px;
-            border-radius: 5px;
-            overflow-x: auto;
-            min-height: 100px;
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
 
-        .queries button {
-            background: #6c757d;
-            margin-right: 5px;
-            margin-bottom: 5px;
-            font-size: 0.8rem;
+        header {
+            background: #FFFFFF;
+            border-bottom: 0.5px solid #E2E0D9;
+            padding: 16px 20px;
+        }
+
+        .search-bar-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .filters-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .search-wrap {
+            flex: 1;
+            position: relative;
+        }
+
+        .search-wrap i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 13px;
+            color: #B4B2A9;
+        }
+
+        input,
+        select {
+            background: #F8F7F4;
+            border: 0.5px solid #D3D1C7;
+            border-radius: 6px;
+            padding: 7px 10px;
+            font-size: 11px;
+            font-family: 'JetBrains Mono', monospace;
+            color: #444441;
+            outline: none;
+        }
+
+        #searchInput {
+            width: 100%;
+            padding-left: 34px;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .filter-group label {
+            font-size: 9px;
+            font-weight: 700;
+            color: #888780;
+            text-transform: uppercase;
+        }
+
+        .btn-search {
+            background: #E24B4A;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 9px 18px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+
+        .btn-search:hover {
+            background: #A32D2D;
+        }
+
+        .dashboard-scroll {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 20px 20px;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .kpi-card {
+            background: #FFFFFF;
+            border: 0.5px solid #E2E0D9;
+            border-radius: 10px;
+            padding: 14px 16px;
+        }
+
+        .kpi-label {
+            font-size: 9px;
+            font-weight: 600;
+            color: #888780;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        .kpi-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #2C2C2A;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .chart-card {
+            background: #FFFFFF;
+            border: 0.5px solid #E2E0D9;
+            border-radius: 10px;
+            padding: 16px;
+        }
+
+        .table-card {
+            background: #FFFFFF;
+            border: 0.5px solid #E2E0D9;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead th {
+            font-size: 9px;
+            font-weight: 700;
+            color: #B4B2A9;
+            text-transform: uppercase;
+            padding: 10px 16px;
+            text-align: left;
+            border-bottom: 0.5px solid #E2E0D9;
+        }
+
+        tbody td {
+            padding: 10px 16px;
+            font-size: 11px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .td-id {
+            color: #A32D2D;
+            font-weight: 700;
+        }
+
+        .badge {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 9px;
+            font-weight: 700;
+        }
+
+        .badge-activo {
+            background: #EAF3DE;
+            color: #3B6D11;
+        }
+
+        .badge-proceso {
+            background: #FAEEDA;
+            color: #854F0B;
         }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <h1>🔎 Probador de Consultas SOQL</h1>
 
-        <div class="queries">
-            <p>Consultas de ejemplo:</p>
-            <button onclick="setQuery('?$select=nombre_entidad,ciudad,valor_del_contrato')">Solo $select</button>
-            <button onclick="setQuery('?$where=valor_del_contrato > 20000000')">$where Numérico</button>
-            <button onclick="setQuery('?$where=ciudad = \'Pereira\'')">$where Texto</button>
-            <button
-                onclick="setQuery('?$where=objeto_del_contrato LIKE \'apoyo\'&$select=nombre_entidad,objeto_del_contrato')">LIKE
-                (Buscador)</button>
-            <button onclick="setQuery('?$order=valor_del_contrato DESC')">$order (Mayor valor)</button>
-        </div>
+    <div id="app">
+        <aside>
+            <div class="logo-area">
+                <div class="logo-icon"><i class="ti ti-radiation" style="color:#fff;font-size:16px;"></i></div>
+                <div class="logo-title">DINAMITA<span style="color:#E24B4A;">.EXE</span></div>
+                <div class="logo-sub">CONTRACT INTEL</div>
+            </div>
+            <nav>
+                <div class="nav-item active"><i class="ti ti-layout-dashboard"></i> Central CMD</div>
+                <div class="nav-item"><i class="ti ti-database"></i> Explorador</div>
+                <div class="nav-item"><i class="ti ti-settings"></i> API Config</div>
+            </nav>
+        </aside>
 
-        <label for="queryInput">URL Query Params:</label>
-        <input type="text" id="queryInput"
-            value="?$select=nombre_entidad,valor_del_contrato&$where=valor_del_contrato > 20000000"
-            placeholder="Ej: ?$where=ciudad='Pereira'">
+        <main>
+            <header>
+                <div class="search-bar-row">
+                    <div class="search-wrap">
+                        <i class="ti ti-terminal"></i>
+                        <input id="searchInput" type="text" placeholder="Buscar por entidad o ciudad (LIKE)..." />
+                    </div>
+                    <button class="btn-search" onclick="fetchData()">EJECUTAR CONSULTA</button>
+                </div>
 
-        <button onclick="llamarApi()">Ejecutar Consulta</button>
+                <div class="filters-row">
+                    <div class="filter-group">
+                        <label>Estado:</label>
+                        <select id="filterEstado">
+                            <option value="">TODOS</option>
+                            <option value="En ejecución">En ejecución</option>
+                            <option value="Terminado">Terminado</option>
+                            <option value="Borrador">Borrador</option>
+                        </select>
+                    </div>
 
-        <h3>Resultado JSON:</h3>
-        <pre id="resultado">// Esperando consulta...</pre>
+                    <div class="filter-group">
+                        <label>Mínimo ($):</label>
+                        <input type="number" id="filterMonto" placeholder="0" style="width: 100px;">
+                    </div>
+
+                    <div class="filter-group" style="margin-left: auto;">
+                        <label>Ordenar por:</label>
+                        <select id="sortField">
+                            <option value="valor_del_contrato">Valor</option>
+                            <option value="nombre_entidad">Entidad</option>
+                            <option value="fecha_de_firma">Fecha</option>
+                        </select>
+                        <select id="sortDir">
+                            <option value="DESC">DESC</option>
+                            <option value="ASC">ASC</option>
+                        </select>
+                    </div>
+                </div>
+            </header>
+
+            <div class="dashboard-scroll">
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-label">Volumen Filtrado</div>
+                        <div class="kpi-value" id="m-total">$0</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Registros</div>
+                        <div class="kpi-value" id="m-count">0</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Promedio</div>
+                        <div class="kpi-value" id="m-avg">$0</div>
+                    </div>
+                    <div class="kpi-card" style="border-left: 4px solid #E24B4A;">
+                        <div class="kpi-label">Estado API</div>
+                        <div class="kpi-value" style="color: #639922; font-size: 14px;">CONECTADO</div>
+                    </div>
+                </div>
+
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <canvas id="topChart" height="100"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <canvas id="geoChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="table-card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Entidad</th>
+                                <th>Ubicación</th>
+                                <th>Valor (COP)</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <!-- Data dinámica -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
-        function setQuery(query) {
-            document.getElementById('queryInput').value = query;
-            llamarApi();
-        }
+        const API_BASE = "https://dinamita-iota.vercel.app/api/contratos";
+        let charts = {};
 
-        async function llamarApi() {
-            const output = document.getElementById('resultado');
-            output.innerText = "Cargando...";
+        async function fetchData() {
+            const search = document.getElementById('searchInput').value;
+            const estado = document.getElementById('filterEstado').value;
+            const monto = document.getElementById('filterMonto').value;
+            const sortField = document.getElementById('sortField').value;
+            const sortDir = document.getElementById('sortDir').value;
+
+            // 1. Construir Cláusulas $where
+            let conditions = [];
+            if (search) {
+                // SoQL: Buscamos en nombre_entidad o ciudad
+                conditions.push(`(nombre_entidad LIKE '${search}' OR ciudad LIKE '${search}')`);
+            }
+            if (estado) {
+                conditions.push(`estado_contrato = '${estado}'`);
+            }
+            if (monto) {
+                conditions.push(`valor_del_contrato >= ${monto}`);
+            }
+
+            // 2. Armar Query String
+            let queryParams = [];
+            if (conditions.length > 0) {
+                queryParams.push(`$where=${conditions.join(' AND ')}`);
+            }
+
+            // 3. Agregar Ordenamiento
+            queryParams.push(`$order=${sortField} ${sortDir}`);
+
+            // 4. Limitar para el dashboard
+            queryParams.push(`$limit=50`);
+
+            const finalUrl = `${API_BASE}?${queryParams.join('&')}`;
+            console.log("Consultando API:", finalUrl);
+
             try {
-                const params = document.getElementById('queryInput').value;
-                const res = await fetch(`/api/contratos${params}`);
-
-                if (!res.ok) throw new Error("Error en la respuesta del servidor");
-
-                const data = await res.json();
-                output.innerText = JSON.stringify(data, null, 2);
-            } catch (error) {
-                output.innerText = "Error: " + error.message;
+                const response = await fetch(finalUrl);
+                const data = await response.json();
+                updateDashboard(data);
+            } catch (err) {
+                console.error("Error fetching data:", err);
+                alert("Error al conectar con la API. Asegúrate de que el servidor esté corriendo en el puerto 3000.");
             }
         }
 
-        // Cargar la vista por defecto
-        window.onload = llamarApi;
+        function updateDashboard(data) {
+            // KPIs
+            const total = data.reduce((a, v) => a + (Number(v.valor_del_contrato) || 0), 0);
+            const count = data.length;
+            const avg = count > 0 ? total / count : 0;
+
+            document.getElementById('m-total').innerText = fmtShort(total);
+            document.getElementById('m-count').innerText = count;
+            document.getElementById('m-avg').innerText = fmtShort(avg);
+
+            renderTable(data);
+            renderCharts(data);
+        }
+
+        function renderTable(data) {
+            const html = data.map(d => `
+        <tr>
+            <td style="font-weight:600; color:#2C2C2A">${d.nombre_entidad}</td>
+            <td style="color:#888780">${d.ciudad} (${d.departamento})</td>
+            <td style="font-weight:700">${fmt(d.valor_del_contrato)}</td>
+            <td><span class="badge ${d.estado_contrato === 'En ejecución' ? 'badge-activo' : 'badge-proceso'}">${d.estado_contrato}</span></td>
+        </tr>
+    `).join('');
+            document.getElementById('tableBody').innerHTML = html;
+        }
+
+        function renderCharts(data) {
+            // Chart 1: Top 5 por valor
+            const top5 = [...data].sort((a, b) => b.valor_del_contrato - a.valor_del_contrato).slice(0, 5);
+
+            if (charts.bar) charts.bar.destroy();
+            charts.bar = new Chart(document.getElementById('topChart'), {
+                type: 'bar',
+                data: {
+                    labels: top5.map(d => d.nombre_entidad.substring(0, 15) + '...'),
+                    datasets: [{
+                        label: 'Valor Contrato',
+                        data: top5.map(d => d.valor_del_contrato),
+                        backgroundColor: '#E24B4A'
+                    }]
+                },
+                options: { plugins: { legend: { display: false } } }
+            });
+
+            // Chart 2: Distribución por Depto
+            const deptoMap = {};
+            data.forEach(d => deptoMap[d.departamento] = (deptoMap[d.departamento] || 0) + 1);
+
+            if (charts.pie) charts.pie.destroy();
+            charts.pie = new Chart(document.getElementById('geoChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(deptoMap),
+                    datasets: [{
+                        data: Object.values(deptoMap),
+                        backgroundColor: ['#E24B4A', '#F09595', '#BA7517', '#639922', '#378ADD']
+                    }]
+                },
+                options: { cutout: '70%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 8, font: { size: 9 } } } } }
+            });
+        }
+
+        function fmt(v) { return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(v); }
+        function fmtShort(v) {
+            if (v >= 1e9) return '$' + (v / 1e9).toFixed(1) + 'B';
+            if (v >= 1e6) return '$' + (v / 1e6).toFixed(0) + 'M';
+            return '$' + v;
+        }
+
+        // Carga inicial
+        fetchData();
     </script>
 </body>
 

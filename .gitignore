@@ -1,3 +1,11 @@
-data.csv
 node_modules
+.env
 database.sqlite
+temp_check.sqlite
+dist
+
+
+
+git config user.name "LocalMart App"
+git config user.email "local.mart001@gmail.com"
+
