@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Hackaton API - SOQL Tester</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            padding: 20px;
+            background: #f4f4f9;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        textarea,
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        pre {
+            background: #2d2d2d;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            min-height: 100px;
+        }
+
+        .queries button {
+            background: #6c757d;
+            margin-right: 5px;
+            margin-bottom: 5px;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔎 Probador de Consultas SOQL</h1>
+
+        <div class="queries">
+            <p>Consultas de ejemplo:</p>
+            <button onclick="setQuery('?$select=nombre_entidad,ciudad,valor_del_contrato')">Solo $select</button>
+            <button onclick="setQuery('?$where=valor_del_contrato > 20000000')">$where Numérico</button>
+            <button onclick="setQuery('?$where=ciudad = \'Pereira\'')">$where Texto</button>
+            <button
+                onclick="setQuery('?$where=objeto_del_contrato LIKE \'apoyo\'&$select=nombre_entidad,objeto_del_contrato')">LIKE
+                (Buscador)</button>
+            <button onclick="setQuery('?$order=valor_del_contrato DESC')">$order (Mayor valor)</button>
+        </div>
+
+        <label for="queryInput">URL Query Params:</label>
+        <input type="text" id="queryInput"
+            value="?$select=nombre_entidad,valor_del_contrato&$where=valor_del_contrato > 20000000"
+            placeholder="Ej: ?$where=ciudad='Pereira'">
+
+        <button onclick="llamarApi()">Ejecutar Consulta</button>
+
+        <h3>Resultado JSON:</h3>
+        <pre id="resultado">// Esperando consulta...</pre>
+    </div>
+
+    <script>
+        function setQuery(query) {
+            document.getElementById('queryInput').value = query;
+            llamarApi();
+        }
+
+        async function llamarApi() {
+            const output = document.getElementById('resultado');
+            output.innerText = "Cargando...";
+            try {
+                const params = document.getElementById('queryInput').value;
+                const res = await fetch(`/api/contratos${params}`);
+
+                if (!res.ok) throw new Error("Error en la respuesta del servidor");
+
+                const data = await res.json();
+                output.innerText = JSON.stringify(data, null, 2);
+            } catch (error) {
+                output.innerText = "Error: " + error.message;
+            }
+        }
+
+        // Cargar la vista por defecto
+        window.onload = llamarApi;
+    </script>
+</body>
+
+</html>
