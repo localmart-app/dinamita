@@ -251,11 +251,6 @@
             font-family: 'JetBrains Mono', monospace;
         }
 
-        .td-id {
-            color: #A32D2D;
-            font-weight: 700;
-        }
-
         .badge {
             padding: 2px 8px;
             border-radius: 4px;
@@ -294,8 +289,7 @@
                 <div class="search-bar-row">
                     <div class="search-wrap">
                         <i class="ti ti-terminal"></i>
-                        <!-- Se agregó el evento onkeyup para buscar presionando Enter -->
-                        <input id="searchInput" type="text" placeholder="Buscar por entidad o ciudad (LIKE)..."
+                        <input id="searchInput" type="text" placeholder="Buscar por entidad o ciudad..."
                             onkeyup="if(event.key === 'Enter') fetchData()" />
                     </div>
                     <button class="btn-search" onclick="fetchData()">EJECUTAR CONSULTA</button>
@@ -307,7 +301,6 @@
                             <option value="">TODOS</option>
                             <option value="En ejecución">En ejecución</option>
                             <option value="Terminado">Terminado</option>
-                            <option value="Borrador">Borrador</option>
                         </select>
                     </div>
                     <div class="filter-group">
@@ -315,7 +308,7 @@
                         <input type="number" id="filterMonto" placeholder="0" style="width: 100px;">
                     </div>
                     <div class="filter-group" style="margin-left: auto;">
-                        <label>Ordenar por:</label>
+                        <label>Ordenar:</label>
                         <select id="sortField">
                             <option value="valor_del_contrato">Valor</option>
                             <option value="nombre_entidad">Entidad</option>
@@ -334,7 +327,7 @@
                         <div class="kpi-value" id="m-total">$0</div>
                     </div>
                     <div class="kpi-card">
-                        <div class="kpi-label">Registros</div>
+                        <div class="kpi-label">Registros (Max 100)</div>
                         <div class="kpi-value" id="m-count">0</div>
                     </div>
                     <div class="kpi-card">
@@ -343,16 +336,12 @@
                     </div>
                     <div class="kpi-card" style="border-left: 4px solid #E24B4A;">
                         <div class="kpi-label">Estado API</div>
-                        <div class="kpi-value" id="api-status" style="color: #639922; font-size: 14px;">CONECTADO</div>
+                        <div id="api-status" class="kpi-value" style="color: #639922; font-size: 14px;">CONECTADO</div>
                     </div>
                 </div>
                 <div class="charts-grid">
-                    <div class="chart-card">
-                        <canvas id="topChart" height="100"></canvas>
-                    </div>
-                    <div class="chart-card">
-                        <canvas id="geoChart"></canvas>
-                    </div>
+                    <div class="chart-card"><canvas id="topChart" height="100"></canvas></div>
+                    <div class="chart-card"><canvas id="geoChart"></canvas></div>
                 </div>
                 <div class="table-card">
                     <table>
@@ -364,19 +353,15 @@
                                 <th>Estado</th>
                             </tr>
                         </thead>
-                        <tbody id="tableBody">
-                            <!-- Data dinámica -->
-                        </tbody>
+                        <tbody id="tableBody"></tbody>
                     </table>
                 </div>
             </div>
         </main>
     </div>
-
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
-        // URL ABSOLUTA CORREGIDA
-        const API_BASE = "https://dinamita-iota.vercel.app/api/contratos";
+        const API_BASE = "/api/contratos"; // Cambiar a URL completa si pruebas fuera de localhost:3000
         let charts = {};
 
         async function fetchData() {
@@ -386,151 +371,78 @@
             const sortField = document.getElementById('sortField').value;
             const sortDir = document.getElementById('sortDir').value;
 
-            // Usar URLSearchParams para codificar automáticamente los espacios (Soluciona el error 404)
+            // Usamos URLSearchParams para manejar la limitación y codificación correctamente
             let params = new URLSearchParams();
             let conditions = [];
 
-            if (search) {
-                // Añadimos % para que funcione como un buscador real "Contiene"
-                conditions.push(`(nombre_entidad LIKE '%${search}%' OR ciudad LIKE '%${search}%')`);
-            }
-            if (estado) {
-                // En SECOP usualmente se usa 'estado_contrato' o 'estado_del_proceso'. Usamos estado_contrato por defecto.
-                conditions.push(`estado_contrato = '${estado}'`);
-            }
-            if (monto) {
-                conditions.push(`valor_del_contrato >= ${monto}`);
-            }
+            if (search) conditions.push(`(nombre_entidad LIKE '%${search}%' OR ciudad LIKE '%${search}%')`);
+            if (estado) conditions.push(`estado_contrato = '${estado}'`);
+            if (monto) conditions.push(`valor_del_contrato >= ${monto}`);
 
-            if (conditions.length > 0) {
-                params.append('$where', conditions.join(' AND '));
-            }
+            if (conditions.length > 0) params.append('$where', conditions.join(' AND '));
 
             params.append('$order', `${sortField} ${sortDir}`);
-            params.append('$limit', '50');
-
-            const finalUrl = `${API_BASE}?${params.toString()}`;
-            console.log("Consultando API:", finalUrl);
+            params.append('$limit', '100'); // LIMITACIÓN FORZADA A 100
 
             try {
-                const response = await fetch(finalUrl);
-                if (!response.ok) throw new Error(`HTTP status ${response.status}`);
-
+                const response = await fetch(`${API_BASE}?${params.toString()}`);
                 const data = await response.json();
-
-                document.getElementById('api-status').innerText = 'CONECTADO';
-                document.getElementById('api-status').style.color = '#639922';
-
                 updateDashboard(data);
             } catch (err) {
-                console.error("Error fetching data:", err);
+                console.error("Error:", err);
                 document.getElementById('api-status').innerText = 'ERROR';
-                document.getElementById('api-status').style.color = '#E24B4A';
-                updateDashboard([]); // Enviar array vacío para limpiar el dashboard si hay error
             }
         }
 
         function updateDashboard(data) {
-            if (!Array.isArray(data)) data = []; // Prevención de errores
-
-            // KPIs asegurándonos de convertir a número
             const total = data.reduce((a, v) => a + (Number(v.valor_del_contrato) || 0), 0);
             const count = data.length;
-            const avg = count > 0 ? total / count : 0;
-
             document.getElementById('m-total').innerText = fmtShort(total);
             document.getElementById('m-count').innerText = count;
-            document.getElementById('m-avg').innerText = fmtShort(avg);
-
+            document.getElementById('m-avg').innerText = fmtShort(count > 0 ? total / count : 0);
             renderTable(data);
             renderCharts(data);
         }
 
         function renderTable(data) {
-            if (data.length === 0) {
-                document.getElementById('tableBody').innerHTML = '<tr><td colspan="4" style="text-align:center;">No se encontraron resultados</td></tr>';
-                return;
-            }
-
-            const html = data.map(d => {
-                // Manejo de valores nulos o indefinidos
-                const entidad = d.nombre_entidad || 'Sin nombre';
-                const ubicacion = `${d.ciudad || ''} ${d.departamento ? `(${d.departamento})` : ''}`;
-                const valor = Number(d.valor_del_contrato) || 0;
-                const estadoLabel = d.estado_contrato || d.estado_del_proceso || 'Desconocido';
-                const badgeClass = estadoLabel.toLowerCase().includes('ejecución') ? 'badge-activo' : 'badge-proceso';
-
-                return `
-          <tr>
-            <td style="font-weight:600; color:#2C2C2A">${entidad}</td>
-            <td style="color:#888780">${ubicacion}</td>
-            <td style="font-weight:700">${fmt(valor)}</td>
-            <td><span class="badge ${badgeClass}">${estadoLabel}</span></td>
-          </tr>
-        `;
-            }).join('');
-
-            document.getElementById('tableBody').innerHTML = html;
+            document.getElementById('tableBody').innerHTML = data.map(d => `
+        <tr>
+          <td style="font-weight:600;">${d.nombre_entidad || 'N/A'}</td>
+          <td>${d.ciudad || ''} (${d.departamento || ''})</td>
+          <td style="font-weight:700;">${fmt(d.valor_del_contrato || 0)}</td>
+          <td><span class="badge ${String(d.estado_contrato).includes('ejecución') ? 'badge-activo' : 'badge-proceso'}">${d.estado_contrato}</span></td>
+        </tr>`).join('');
         }
 
         function renderCharts(data) {
-            // Evitar renderizar gráficos si no hay data
-            if (data.length === 0) {
-                if (charts.bar) charts.bar.destroy();
-                if (charts.pie) charts.pie.destroy();
-                return;
-            }
-
-            // Chart 1: Top 5 por valor
-            const top5 = [...data].sort((a, b) => (Number(b.valor_del_contrato) || 0) - (Number(a.valor_del_contrato) || 0)).slice(0, 5);
-
             if (charts.bar) charts.bar.destroy();
+            if (charts.pie) charts.pie.destroy();
+            const top5 = [...data].sort((a, b) => b.valor_del_contrato - a.valor_del_contrato).slice(0, 5);
             charts.bar = new Chart(document.getElementById('topChart'), {
                 type: 'bar',
                 data: {
-                    labels: top5.map(d => (d.nombre_entidad || 'N/A').substring(0, 15) + '...'),
-                    datasets: [{
-                        label: 'Valor Contrato',
-                        data: top5.map(d => Number(d.valor_del_contrato) || 0),
-                        backgroundColor: '#E24B4A'
-                    }]
+                    labels: top5.map(d => d.nombre_entidad.substring(0, 10) + '...'),
+                    datasets: [{ label: 'Valor', data: top5.map(d => d.valor_del_contrato), backgroundColor: '#E24B4A' }]
                 },
                 options: { plugins: { legend: { display: false } } }
             });
-
-            // Chart 2: Distribución por Depto
             const deptoMap = {};
-            data.forEach(d => {
-                const dep = d.departamento || 'No especificado';
-                deptoMap[dep] = (deptoMap[dep] || 0) + 1;
-            });
-
-            if (charts.pie) charts.pie.destroy();
+            data.forEach(d => deptoMap[d.departamento] = (deptoMap[d.departamento] || 0) + 1);
             charts.pie = new Chart(document.getElementById('geoChart'), {
                 type: 'doughnut',
                 data: {
                     labels: Object.keys(deptoMap),
-                    datasets: [{
-                        data: Object.values(deptoMap),
-                        backgroundColor: ['#E24B4A', '#F09595', '#BA7517', '#639922', '#378ADD', '#A32D2D']
-                    }]
-                },
-                options: { cutout: '70%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 8, font: { size: 9 } } } } }
+                    datasets: [{ data: Object.values(deptoMap), backgroundColor: ['#E24B4A', '#F09595', '#BA7517', '#639922', '#378ADD'] }]
+                }
             });
         }
 
-        function fmt(v) {
-            return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(v);
-        }
-
+        function fmt(v) { return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(v); }
         function fmtShort(v) {
-            if (v === 0) return '$0';
             if (v >= 1e9) return '$' + (v / 1e9).toFixed(1) + 'B';
             if (v >= 1e6) return '$' + (v / 1e6).toFixed(0) + 'M';
-            return '$' + v.toLocaleString('es-CO');
+            return '$' + v.toLocaleString();
         }
-
-        // Carga inicial
         fetchData();
     </script>
 </body>
