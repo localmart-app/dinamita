@@ -2,18 +2,18 @@
     "version": 2,
     "builds": [
         {
-            "src": "dinamita/src/index.ts",
+            "src": "src/index.ts",
             "use": "@vercel/node"
         }
     ],
     "routes": [
         {
             "src": "/api/(.*)",
-            "dest": "dinamita/src/index.ts"
+            "dest": "src/index.ts"
         },
         {
             "src": "/(.*)",
-            "dest": "/dinamita/public/$1"
+            "dest": "/public/$1"
         }
     ]
 }
