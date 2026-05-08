@@ -374,18 +374,6 @@
             let params = new URLSearchParams();
             let conditions = [];
 
-            // Construcción de la query
-            if (search) conditions.push(`(nombre_entidad LIKE '%${search}%' OR ciudad LIKE '%${search}%')`);
-            if (estado) conditions.push(`estado_contrato = '${estado}'`);
-            if (monto) conditions.push(`valor_del_contrato >= ${monto}`);
-
-            if (conditions.length > 0) params.append('$where', conditions.join(' AND '));
-
-            params.append('$order', `${sortField} ${sortDir}`);
-
-            // FORZAR LÍMITE DE 100 POR DEFECTO
-            params.append('$limit', '100');
-
             try {
                 const response = await fetch(`${API_BASE}?${params.toString()}`);
                 if (!response.ok) throw new Error("Error en la API");
